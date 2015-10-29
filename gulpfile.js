@@ -7,7 +7,7 @@ var gulp = require('gulp'),
     autoprefixer = require('gulp-autoprefixer'),
     minifyCSS = require('gulp-minify-css'),
     imagemin = require('gulp-imagemin'),
-    browsersync = require('browser-sync'),
+    browsersync = require('browser-sync').create(),
     open = require("gulp-open"),
     del = require('del'),
     runSequence = require('run-sequence'),
@@ -52,8 +52,7 @@ gulp.task('jade', function () {
         console.log(err);
         this.emit('end');
       })
-      .pipe(gulp.dest(build_path.html))
-      .pipe(browsersync.stream());
+      .pipe(gulp.dest(build_path.html));
 });
 
 gulp.task('sass', function () {
@@ -65,8 +64,7 @@ gulp.task('sass', function () {
       })
       .pipe(autoprefixer())
       .pipe(gulpif(!isDev, minifyCSS({noAdvanced: true}))) // minify if Prod
-      .pipe(gulp.dest(build_path.css))
-      .pipe(browsersync.stream());
+      .pipe(gulp.dest(build_path.css));
 });
 
 gulp.task('js', function () {
@@ -75,22 +73,19 @@ gulp.task('js', function () {
         console.log(err);
         this.emit('end');
       })
-      .pipe(gulp.dest(build_path.js))
-      .pipe(browsersync.stream());
+      .pipe(gulp.dest(build_path.js));
 });
 
 gulp.task('images', function () {
   return gulp.src(dev_path.images)
       .pipe(imagemin({optimizationLevel: 3}))
-      .pipe(gulp.dest(build_path.images))
-      .pipe(browsersync.stream());
+      .pipe(gulp.dest(build_path.images));
 });
 
 gulp.task('favicons', function () {
   return gulp.src(dev_path.favicons)
       .pipe(imagemin({optimizationLevel: 3}))
-      .pipe(gulp.dest(build_path.html))
-      .pipe(browsersync.stream());
+      .pipe(gulp.dest(build_path.html));
 });
 
 gulp.task('fonts', function () {
@@ -108,7 +103,12 @@ gulp.task('browser-sync', ['nodemon'], function () {
     proxy: "localhost:7070",  // local node app address
     port: dev_path.port,  // use *different* port than above
     notify: true,
-    open: false
+    open: false,
+    files: [build_path.images,
+      dev_path.jade,
+      dev_path.favicons,
+      dev_path.js,
+      build_path.css]
   })
 });
 
@@ -122,17 +122,17 @@ gulp.task('url', function () {
 });
 
 gulp.task('clean-build', function (cb) {
-    del([output_path], cb);
+  del([output_path], cb);
 });
 gulp.task('clean-deployed', function (cb) {
-    del([deployed_path], cb);
+  del([deployed_path], cb);
 });
 
 gulp.task('watch', function () {
-  gulp.watch('assets/jade/**/*.jade', ['jade']);
+  gulp.watch('assets/jade/**/*.jade', browsersync.reload);
   gulp.watch('assets/stylesheets/**/*.scss', ['sass']);
-  gulp.watch('assets/images/**/*.*', ['images']);
-  gulp.watch('assets/javascripts/**/*.js', ['js']);
+  gulp.watch(dev_path.images, ['images']);
+  gulp.watch(dev_path.js, ['js']);
 });
 
 gulp.task('server', function (callback) {
@@ -168,17 +168,17 @@ gulp.task('nodemon', function (cb) {
       'node_modules/'
     ]
   })
-  .on('start', function () {
-    if (!called) {
-      called = true;
-      cb();
-    }
-  })
-  .on('restart', function () {
-    setTimeout(function () {
-      browsersync.stream();
-    }, 1000);
-  });
+      .on('start', function () {
+        if (!called) {
+          called = true;
+          cb();
+        }
+      })
+      .on('restart', function () {
+        setTimeout(function () {
+          browsersync.stream();
+        }, 1000);
+      });
 });
 
 gulp.task('default', function () {
